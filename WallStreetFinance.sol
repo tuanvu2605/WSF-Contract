@@ -2,7 +2,7 @@
 //
 
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.7.4;
 
 library SafeMathInt {
     int256 private constant MIN_INT256 = int256(1) << 255;
@@ -492,15 +492,44 @@ contract WallStreetFinance is ERC20Detailed, Ownable {
         pairContract = IPancakeSwapPair(pair);
 
         _totalSupply = INITIAL_FRAGMENTS_SUPPLY;
-        _gonBalances[_msgSender()] = TOTAL_GONS;
+        _gonBalances[owner()] = TOTAL_GONS;
         _gonsPerFragment = TOTAL_GONS.div(_totalSupply);
         _initRebaseStartTime = block.timestamp;
         _lastRebasedTime = block.number;
 
-        _isFeeExempt[_msgSender()] = true;
+        _isFeeExempt[owner()] = true;
         _isFeeExempt[address(this)] = true;
 
         emit Transfer(address(0x0),  owner(), _totalSupply);
+    }
+
+    function setZeroFees() external onlyOwner {
+        liquidityFee = 0;
+        treasuryFee = 0;
+        insuranceFee = 0;
+        wsfBankFee = 0;
+        nftHolderFee = 0;
+        burnFee = 0;
+
+        sellFee = 0;
+        totalFee = 0;
+    }
+
+    function setNormalFees() external onlyOwner {
+        liquidityFee = 40;
+        treasuryFee = 20;
+        insuranceFee = 60;
+        wsfBankFee = 20;
+        nftHolderFee = 20;
+        burnFee = 10;
+
+        sellFee = wsfBankFee.add(nftHolderFee);
+        totalFee = liquidityFee.add(treasuryFee).add(insuranceFee).add(burnFee);
+
+    }
+
+    function manualRebase() external onlyOwner {
+        rebase();
     }
 
     function rebase() internal {
@@ -890,6 +919,7 @@ contract WallStreetFinance is ERC20Detailed, Ownable {
     function manualSync() external {
         IPancakeSwapPair(pair).sync();
     }
+
 
     function setFeeReceivers(
         address _lpReceiver,
